@@ -1,0 +1,151 @@
+import math
+import random
+import hashlib
+
+def genP(n):
+    while True:
+        num = random.randrange(2 ** (n - 1) + 1, 2 ** n,2)
+        count = 0
+        steps = 1000
+        for i in range(steps):
+            a = random.randrange(10, 2 ** (n - 2), 1)
+            if checkPrime(num, a):
+                count += 1
+            else:
+                break
+        if count == steps:
+            return num
+
+
+
+def Mod(a, d, num):
+    res = 1
+    moveList = []
+
+    tmp = d % num
+    while tmp > 0:
+        if tmp % 2 == 1:
+            moveList.append(1)
+            tmp -= 1
+        else:
+            moveList.append(2)
+            tmp >>= 1
+    moveList.reverse()
+    for i in range(len(moveList)):
+        if moveList[i] == 1:
+            res *= a
+        else:
+            res *= res
+        res %= num
+    return res
+
+def checkPrime(num, a):
+    s = 0
+    d = num - 1
+    while d % 2 == 0 and d != 0:
+        d >>= 1
+        s += 1
+    if Mod(a, d, num) == 1:
+        return True
+    for r in range(s + 1):
+        if Mod(a, d * (2 ** r), num) == num - 1:
+            return True
+    return False
+
+
+def genG(p):
+    while True:
+        a = random.randrange(2,p-1)
+        checkForEquality = []
+        steps = 10000
+        for i in range(steps):
+            cur = Mod(a, i, p)
+            if checkForEquality.count(cur) != 0:
+                break
+            checkForEquality.append(cur)
+            if len(checkForEquality) == steps:
+                return a
+
+
+
+def cipher(p, g, y, M):
+    while True:
+        k = random.randrange(2, p-2) # session key
+        if math.gcd(k, p-1) == 1:
+            break
+    a = Mod(g, k, p)
+    b = Mod(y, k, p)
+    b *= M
+    b %= p
+    res = {
+        "a": a,
+        "b": b
+    }
+    return res
+
+def decipher(p, x, M):
+    m = Mod(M['a'], p - 1 - x, p)
+    m *= M["b"]
+    m %= p
+    print(m)
+
+
+def encrypt_decript():
+    p = genP(128)
+    print("p = " + str(p))
+    g = genG(p)
+    print("g = " + str(g))
+    x = random.randrange(2, p - 2)  # X - private key; y, p, g - public
+    print("x(private key) = " + str(x))
+    y = Mod(g, x, p)
+    print("y = " + str(y))
+    msg = 4241241242131231231231
+    print ("msg = " + str(msg))
+    ciphered = cipher(p, g, y, msg)
+    print("cipher: " + str(ciphered))
+    print("decipher: ")
+    decipher(p, x, ciphered)
+
+
+
+def signature(fName):
+    p = genP(128)
+    print("p = " + str(p))
+    g = genG(p)
+    print("g = " + str(g))
+    x = random.randrange(2, p - 2)
+    y = Mod(g, x, p)
+    print("y = " + str(y))
+    k = random.randrange(2, p -2)
+    hash = int(hashlib.md5(open(fName, 'r').read().encode('utf-8')).hexdigest(), 16) % p
+    a = Mod(g, k, p)
+    print("r = " + str(a))
+    b = euclid(k, p - 1)[0]
+    b *= (hash - (x*a))
+    b %= p - 1
+    print("s = " + str(b))
+    m = int(hashlib.md5(open(fName, 'r').read().encode('utf-8')).hexdigest(), 16) % p
+    res = Mod(y, a, p)
+    res *= Mod(a, b, p)
+    res %= p
+    print(res)
+    print(Mod(g, m, p))
+    if res == Mod(g, m, p):
+        print("Correct")
+
+
+
+
+def euclid(a, b):
+    x, xx, y, yy = 1, 0, 0, 1
+    while b:
+        q = a // b
+        a, b = b, a % b
+        x, xx = xx, x - xx*q
+        y, yy = yy, y - yy*q
+    return (x, y, a)
+
+
+if __name__ == "__main__":
+    #encrypt_decript()
+    signature('1.txt')
